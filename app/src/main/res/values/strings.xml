@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Social Media App</string>
+    <string name="title_activity_first_intro_screen">FirstIntroScreen</string>
+    <string name="title_activity_second_intro_screen">SecondIntroScreen</string>
+    <string name="title_activity_login_screen">LoginScreen</string>
+    <string name="title_activity_login">LoginActivity</string>
 </resources>

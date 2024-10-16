@@ -6,14 +6,24 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/social_media"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/social_media"
         android:supportsRtl="true"
         android:theme="@style/Theme.SocialMediaApp"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".view.LoginActivity"
+            android:exported="false"
+            android:label="@string/title_activity_login"
+            android:theme="@style/Theme.SocialMediaApp" />
+        <activity
+            android:name=".view.SecondIntroScreen"
+            android:exported="false"
+            android:label="@string/title_activity_second_intro_screen"
+            android:theme="@style/Theme.SocialMediaApp" />
+        <activity
+            android:name=".view.IntroductionActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.SocialMediaApp">
