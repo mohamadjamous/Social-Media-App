@@ -50,11 +50,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.example.socialmediaapp.R
 import com.example.socialmediaapp.ui.theme.SocialMediaAppTheme
+import com.example.socialmediaapp.viewmodel.LoginViewModel
 import kotlinx.coroutines.launch
 
 class IntroductionActivity : ComponentActivity() {
@@ -67,21 +73,53 @@ class IntroductionActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             SocialMediaAppTheme {
-                NavHost(navController = navController, startDestination = "intro_activity") {
-                    composable(route = "intro_activity") {
-                        IntroScreen {
-                            navController.navigate("login_activity")
+                NavHost(navController = navController, startDestination = "auth") {
+
+                    navigation(startDestination = "intro", route = "auth"){
+
+                        composable(route = "intro") {
+                            IntroScreen {
+                                navController.navigate("login")
+                            }
                         }
-                    }
-                    composable(route = "login_activity") {
-                        LoginScreen{
-                            navController.popBackStack()
+                        composable(route = "login") {
+                            val viewModel = it.sharedViewModel<LoginViewModel>(navController)
+
+                            LoginScreen(
+                                onBackClick = {navController.popBackStack() },
+                                onSignupClick = {navController.navigate("signup")},
+                                onForgotPasswordClick = { navController.navigate("forgot_password")}) {
+
+                            }
                         }
+
+
+                        composable("forgot_password"){
+                            val viewModel = it.sharedViewModel<LoginViewModel>(navController)
+                            ForgotPasswordScreen()
+                        }
+
+                        composable("signup"){
+                            val viewModel = it.sharedViewModel<LoginViewModel>(navController)
+                            SignupScreen()
+                        }
+
                     }
                 }
             }
         }
     }
+}
+
+
+
+@Composable
+inline fun <reified T : ViewModel> NavBackStackEntry.sharedViewModel(navController: NavController): T {
+    val navGraphRoute = destination.parent?.route ?: return viewModel()
+    val parentEntry = remember(this) {
+        navController.getBackStackEntry(navGraphRoute)
+    }
+    return viewModel(parentEntry)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -143,7 +181,7 @@ fun IntroScreen(onClick: () -> Unit) {
             unSelectedColor = R.color.black
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(34.dp))
 
         GreenButton(
             title = buttonName,
