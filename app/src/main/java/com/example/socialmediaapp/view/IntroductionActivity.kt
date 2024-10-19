@@ -101,7 +101,7 @@ class IntroductionActivity : ComponentActivity() {
 
                         composable("signup"){
                             val viewModel = it.sharedViewModel<LoginViewModel>(navController)
-                            SignupScreen()
+                            SignupScreen(onBackClick = {navController.popBackStack()})
                         }
 
                     }
@@ -172,7 +172,6 @@ fun IntroScreen(onClick: () -> Unit) {
             ItemGreeting(greetings[it])
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
 
         DotsIndicator(
             totalDots = greetings.size,

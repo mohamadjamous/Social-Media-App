@@ -1,22 +1,32 @@
 package com.example.socialmediaapp.view
 
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -26,46 +36,37 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.rememberAsyncImagePainter
 import com.example.socialmediaapp.R
 import com.example.socialmediaapp.view.ui.theme.SocialMediaAppTheme
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.*
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+import com.example.socialmediaapp.viewmodel.SignupViewModel
+import com.example.socialmediaapp.viewmodel.SignupViewModel.*
 
 class SignupActivity : ComponentActivity() {
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             SocialMediaAppTheme {
-                SignupScreen()
+                SignupScreen() {
+                }
             }
         }
     }
@@ -73,162 +74,228 @@ class SignupActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen() {
+fun SignupScreen(onBackClick: () -> Unit) {
 
+    val viewModel = SignupViewModel()
     var fullName by remember { mutableStateOf("") }
     var emailAddress by remember { mutableStateOf("") }
-    var userName by remember { mutableStateOf("") }
+    var userName by remember { mutableStateOf(viewModel.createUserName(fullName = fullName)) }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current  // Get the context from the composable
+    val signUpState = viewModel.signUpState
 
-    Column(modifier = Modifier.padding(all = 10.dp)) {
+    Box(contentAlignment = Alignment.Center){
+        // Handle sign up state
+        when (signUpState) {
+            is SignUpState.Loading -> {
+                CircularProgressIndicator()
+            }
 
-        BackButton(
-            modifier = Modifier
-                .padding(top = 15.dp)
-                .padding(15.dp)
-        ) {
+            is SignUpState.Success -> {
+                Text("Success: ${signUpState.message}", color = Color.Green)
+            }
+
+            is SignUpState.Error -> {
+                Text("Error: ${signUpState.errorMessage}", color = Color.Red)
+            }
+
+            else -> {
+                // Do nothing in Idle state
+            }
         }
+        Column(modifier = Modifier.padding(all = 10.dp)) {
+            BackButton(
+                modifier = Modifier
+                    .padding(top = 15.dp)
+                    .padding(15.dp)
+            ) {
+                onBackClick()
+            }
 
-        Text(
-            "Create Account!",
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(15.dp)
-                .padding(top = 20.dp)
-                .fillMaxWidth()
-        )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
 
-        ProfilePhotoPicker()
+                Text(
+                    "Create Account!",
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(15.dp)
+                        .padding(bottom = 20.dp)
+                        .fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = fullName,
-            onValueChange = { fullName = it },
-            label = { Text("Full Name") },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
-                unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
-            ),
-            modifier = Modifier
-                .padding(top = 40.dp)
-                .padding(start = 25.dp)
-                .padding(end = 20.dp)
-                .fillMaxWidth()
-        )
+                ProfilePhotoPicker(selectedImageUri = selectedImageUri,
+                    onImageSelected = { uri ->
+                        selectedImageUri = uri  // Update the selected image URI
+                    })
 
-        OutlinedTextField(
-            value = emailAddress,
-            onValueChange = { emailAddress = it },
-            label = { Text("Email address") },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
-                unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
-            ),
-            modifier = Modifier
-                .padding(top = 20.dp)
-                .padding(start = 25.dp, end = 20.dp)  // Combined padding
-                .fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = { fullName = it },
+                    label = { Text("Full Name") },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
+                        unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
+                    ),
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(start = 25.dp)
+                        .padding(end = 10.dp)
+                        .fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = userName,
-            onValueChange = { userName = it },
-            label = { Text("Username") },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
-                unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
-            ),
-            modifier = Modifier
-                .padding(top = 20.dp)
-                .padding(start = 25.dp, end = 20.dp)  // Combined padding
-                .fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = emailAddress,
+                    onValueChange = { emailAddress = it },
+                    label = { Text("Email address") },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
+                        unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
+                    ),
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(start = 25.dp)
+                        .padding(end = 10.dp)
+                        .fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            singleLine = true,
-            placeholder = { Text("Password") },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                val image = if (passwordVisible)
-                    Icons.Filled.Lock
-                else Icons.Outlined.Lock
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = { userName = it },
+                    label = { Text("Username") },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
+                        unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
+                    ),
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(start = 25.dp)
+                        .padding(end = 10.dp)
+                        .fillMaxWidth()
+                )
 
-                // Description for accessibility services
-                val description = if (passwordVisible) "Hide password" else "Show password"
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    placeholder = { Text("Password") },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Filled.Lock
+                        else Icons.Outlined.Lock
 
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
+                        // Description for accessibility services
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = description)
+                        }
+                    },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = colorResource(id = R.color.green),  // Focused border color
+                        unfocusedBorderColor = colorResource(id = R.color.grey)  // Unfocused border color
+                    ),
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(start = 25.dp)
+                        .padding(end = 10.dp)
+                        .fillMaxWidth()
+                )
+
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm Password") },
+                    singleLine = true,
+                    placeholder = { Text("Confirm Password") },
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        val image = if (confirmPasswordVisible)
+                            Icons.Filled.Lock
+                        else Icons.Outlined.Lock
+
+                        // Description for accessibility services
+                        val description =
+                            if (confirmPasswordVisible) "Hide password" else "Show password"
+
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(imageVector = image, contentDescription = description)
+                        }
+                    },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = colorResource(id = R.color.green),  // Focused border color
+                        unfocusedBorderColor = colorResource(id = R.color.grey)  // Unfocused border color
+                    ),
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(start = 25.dp)
+                        .padding(end = 10.dp)
+                        .fillMaxWidth()
+                )
+
+
+
+
+                GreenButton(title = "Sign up", modifier = Modifier.padding(top = 30.dp)) {
+
+
+
+                    // check if user info are valid
+                    if (!viewModel.isValidInfo(
+                            selectedImageUri = selectedImageUri,
+                            fullName = fullName,
+                            email = emailAddress,
+                            password = password,
+                            userName = userName
+                        )
+                    ) {
+                        Toast.makeText(context, "Info missing!", Toast.LENGTH_SHORT).show()
+                    } else if (!viewModel.checkPassword(password = password)) {
+                        Toast.makeText(context, "Password is weak!", Toast.LENGTH_SHORT).show()
+                    } else if (password != confirmPassword) {
+                        Toast.makeText(context, "Passwords don't match!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        viewModel.signupUser(
+                            fullName = fullName,
+                            email = emailAddress,
+                            password = password,
+                            userName = userName,
+                            imageUri = selectedImageUri
+                        )
+                    }
                 }
-            },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = colorResource(id = R.color.green),  // Focused border color
-                unfocusedBorderColor = colorResource(id = R.color.grey)  // Unfocused border color
-            ),
-            modifier = Modifier
-                .padding(top = 20.dp)
-                .padding(start = 25.dp, end = 20.dp)  // Combined padding
-                .fillMaxWidth()
-        )
+            }
 
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            singleLine = true,
-            placeholder = { Text("Confirm Password") },
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                val image = if (confirmPasswordVisible)
-                    Icons.Filled.Lock
-                else Icons.Outlined.Lock
-
-                // Description for accessibility services
-                val description = if (confirmPasswordVisible) "Hide password" else "Show password"
-
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Icon(imageVector = image, contentDescription = description)
-                }
-            },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = colorResource(id = R.color.green),  // Focused border color
-                unfocusedBorderColor = colorResource(id = R.color.grey)  // Unfocused border color
-            ),
-            modifier = Modifier
-                .padding(top = 20.dp)
-                .padding(start = 25.dp, end = 20.dp)  // Combined padding
-                .fillMaxWidth()
-        )
-
-
-
-
-        GreenButton(title = "Sign up", modifier = Modifier.padding(top = 70.dp)) {
         }
     }
+
 }
 
 @Composable
-fun ProfilePhotoPicker() {
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+fun ProfilePhotoPicker(
+    selectedImageUri: Uri?,  // Accept the URI from the parent composable
+    onImageSelected: (Uri) -> Unit  // Callback to return the selected image URI
+) {
 
     // Launcher for picking an image from the gallery
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            selectedImageUri = it
+            onImageSelected(it)  // Return the selected image URI to the parent composable
         }
     }
 
@@ -268,15 +335,17 @@ fun ProfilePhotoPicker() {
                 launcher.launch("image/*")
             },
             modifier = Modifier
-                .size(40.dp)
+                .padding(bottom = 10.dp)
+                .padding(end = 10.dp)
                 .clip(CircleShape)
                 .background(colorResource(id = R.color.grey))
                 .align(Alignment.BottomEnd)
+
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add Photo",
-                tint = Color.White
+                tint = Color.White,
             )
         }
     }
@@ -287,6 +356,8 @@ fun ProfilePhotoPicker() {
 @Composable
 fun GreetingPreview2() {
     SocialMediaAppTheme {
-        SignupScreen()
+        SignupScreen() {
+
+        }
     }
 }
