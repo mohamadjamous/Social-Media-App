@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -51,11 +52,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
 import com.example.socialmediaapp.R
 import com.example.socialmediaapp.view.ui.theme.SocialMediaAppTheme
 import com.example.socialmediaapp.viewmodel.SignupViewModel
-import com.example.socialmediaapp.viewmodel.SignupViewModel.*
 
 class SignupActivity : ComponentActivity() {
 
@@ -64,8 +67,9 @@ class SignupActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
             SocialMediaAppTheme {
-                SignupScreen() {
+                SignupScreen(navController = navController) {
                 }
             }
         }
@@ -74,7 +78,7 @@ class SignupActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(onBackClick: () -> Unit) {
+fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
 
     val viewModel = SignupViewModel()
     var fullName by remember { mutableStateOf("") }
@@ -86,27 +90,12 @@ fun SignupScreen(onBackClick: () -> Unit) {
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current  // Get the context from the composable
-    val signUpState = viewModel.signUpState
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val signUpMessage by viewModel.signUpStateMessage.collectAsStateWithLifecycle()
+    val isSuccessful by viewModel.isSuccessful.collectAsStateWithLifecycle()
 
-    Box(contentAlignment = Alignment.Center){
-        // Handle sign up state
-        when (signUpState) {
-            is SignUpState.Loading -> {
-                CircularProgressIndicator()
-            }
+    Box(contentAlignment = Alignment.Center) {
 
-            is SignUpState.Success -> {
-                Text("Success: ${signUpState.message}", color = Color.Green)
-            }
-
-            is SignUpState.Error -> {
-                Text("Error: ${signUpState.errorMessage}", color = Color.Red)
-            }
-
-            else -> {
-                // Do nothing in Idle state
-            }
-        }
         Column(modifier = Modifier.padding(all = 10.dp)) {
             BackButton(
                 modifier = Modifier
@@ -139,7 +128,8 @@ fun SignupScreen(onBackClick: () -> Unit) {
 
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it },
+                    onValueChange = { fullName = it
+                                    userName = viewModel.createUserName(fullName)},
                     label = { Text("Full Name") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
@@ -249,9 +239,14 @@ fun SignupScreen(onBackClick: () -> Unit) {
 
 
 
-                GreenButton(title = "Sign up", modifier = Modifier.padding(top = 30.dp)) {
-
-
+                GreenButton(
+                    title = "Sign up",
+                    modifier = Modifier
+                        .padding(top = 30.dp)
+                        .animateContentSize(),
+                    enabled = !isLoading,
+                    isLoading = isLoading
+                ) {
 
                     // check if user info are valid
                     if (!viewModel.isValidInfo(
@@ -276,6 +271,18 @@ fun SignupScreen(onBackClick: () -> Unit) {
                             imageUri = selectedImageUri
                         )
                     }
+
+                    if (!isLoading)
+                        Toast.makeText(context, signUpMessage, Toast.LENGTH_SHORT).show()
+
+                    if (isSuccessful) {
+                        navController.navigate("feed") {
+                            popUpTo("auth") {
+                                inclusive = true
+                            }
+                        }
+                    }
+
                 }
             }
 
@@ -356,7 +363,9 @@ fun ProfilePhotoPicker(
 @Composable
 fun GreetingPreview2() {
     SocialMediaAppTheme {
-        SignupScreen() {
+        val navController = rememberNavController()
+
+        SignupScreen(navController = navController) {
 
         }
     }

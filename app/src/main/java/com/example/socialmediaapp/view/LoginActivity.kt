@@ -163,7 +163,10 @@ fun LoginScreen(
         )
 
 
-        GreenButton(title = "Sign in", modifier = Modifier.padding(top = 70.dp)) {
+        GreenButton(title = "Sign in", modifier = Modifier.padding(top = 70.dp),
+            enabled = true,
+            isLoading = false
+        ) {
             onSignInClick()
         }
 

@@ -1,7 +1,6 @@
 package com.example.socialmediaapp.viewmodel
 
 import android.net.Uri
-import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,6 +9,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SignupViewModel : ViewModel() {
 
@@ -21,8 +22,13 @@ class SignupViewModel : ViewModel() {
         data class Error(val errorMessage: String) : SignUpState()
     }
 
-    var signUpState by mutableStateOf<SignUpState>(SignUpState.Idle)
+    var _isLoading = MutableStateFlow(false)
+    var _signUpStateMessage = MutableStateFlow("")
+    var _isSuccessful = MutableStateFlow(false)
 
+    val isLoading = _isLoading.asStateFlow()
+    val signUpStateMessage = _signUpStateMessage.asStateFlow()
+    val isSuccessful = _isSuccessful.asStateFlow()
 
 
     fun signupUser(
@@ -35,7 +41,7 @@ class SignupViewModel : ViewModel() {
         val auth = Firebase.auth
         val db = FirebaseFirestore.getInstance() // FireStore instance
         val storage = FirebaseStorage.getInstance() // Firebase Storage instance
-        signUpState = SignUpState.Loading
+        _isLoading.value = true
 
 
         // Create user with email and password in Firebase Authentication
@@ -77,16 +83,25 @@ class SignupViewModel : ViewModel() {
                                         .addOnSuccessListener {
                                             println("User information saved successfully in Firestore with profile image URL!")
                                             // Optionally, call updateUI(user) if needed
-                                            signUpState = SignUpState.Success("User created successfully with profile image")
+//                                            _isLoading.value = SignUpState.Success("User created successfully with profile image")
+                                            _signUpStateMessage.value = "User created successfully with profile image"
+                                            _isLoading.value = false
+                                            _isSuccessful.value = true
                                         }
                                         .addOnFailureListener { e ->
                                             println("Error saving user information: ${e.message}")
-                                            signUpState = SignUpState.Error("Error saving user: ${e.message}")
+//                                            _isLoading.value = SignUpState.Error("Error saving user: ${e.message}")
+                                            _signUpStateMessage.value = "Error saving user: ${e.message}"
+                                            _isLoading.value = false
+                                            _isSuccessful.value = false
 
                                         }
                                 } else {
                                     println("Error getting download URL: ${task.exception?.message}")
-                                    signUpState = SignUpState.Error("Error getting image download URL")
+//                                    _isLoading.value = SignUpState.Error("Error getting image download URL")
+                                    _signUpStateMessage.value = "Error getting image download URL"
+                                    _isLoading.value = false
+                                    _isSuccessful.value = false
 
                                 }
                             }
@@ -105,21 +120,28 @@ class SignupViewModel : ViewModel() {
                                 .set(userData)
                                 .addOnSuccessListener {
                                     println("User information saved successfully in FireStore without profile image!")
-                                    signUpState = SignUpState.Success("User created successfully without profile image")
+//                                    _isLoading.value = SignUpState.Success("User created successfully without profile image")
+                                    _signUpStateMessage.value = "User created successfully without profile image"
+                                    _isLoading.value = false
+                                    _isSuccessful.value = true
 
                                 }
                                 .addOnFailureListener { e ->
                                     println("Error saving user information: ${e.message}")
-                                    signUpState = SignUpState.Error("Error saving user: ${e.message}")
-
+//                                    _isLoading.value = SignUpState.Error("Error saving user: ${e.message}")
+                                    _signUpStateMessage.value = "Error saving user: ${e.message}"
+                                    _isLoading.value = false
+                                    _isSuccessful.value = false
                                 }
                         }
                     }
                 } else {
                     // If sign-up fails, display a message to the user.
                     println("createUserWithEmail:failure ${task.exception?.message}")
-                    signUpState = SignUpState.Error("Sign up failed: ${task.exception?.message}")
-
+//                    _isLoading.value = SignUpState.Error("Sign up failed: ${task.exception?.message}")
+                    _signUpStateMessage.value = "Sign up failed: ${task.exception?.message}"
+                    _isLoading.value = false
+                    _isSuccessful.value = false
                 }
             }
     }

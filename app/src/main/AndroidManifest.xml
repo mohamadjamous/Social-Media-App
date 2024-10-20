@@ -13,6 +13,11 @@
         android:theme="@style/Theme.SocialMediaApp"
         tools:targetApi="31">
         <activity
+            android:name=".view.FeedActivity"
+            android:exported="false"
+            android:label="@string/title_activity_feed"
+            android:theme="@style/Theme.SocialMediaApp" />
+        <activity
             android:name=".view.ForgotPasswordActivity"
             android:exported="false"
             android:label="@string/title_activity_forgot_password"

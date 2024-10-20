@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -101,9 +102,15 @@ class IntroductionActivity : ComponentActivity() {
 
                         composable("signup"){
                             val viewModel = it.sharedViewModel<LoginViewModel>(navController)
-                            SignupScreen(onBackClick = {navController.popBackStack()})
+                            SignupScreen(navController = navController ,onBackClick = {navController.popBackStack()})
                         }
 
+                    }
+
+                    navigation(startDestination = "feed", route="home"){
+                        composable("feed"){
+                            FeedScreen()
+                        }
                     }
                 }
             }
@@ -184,7 +191,9 @@ fun IntroScreen(onClick: () -> Unit) {
 
         GreenButton(
             title = buttonName,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp)
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp),
+            enabled = true,
+            isLoading = false
         ) {
             scope.launch {
                 if (pagerState.currentPage < greetings.size - 1) {
@@ -233,6 +242,8 @@ fun DotsIndicator(
 fun GreenButton(
     title: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean,
+    isLoading: Boolean,
     onClick: () -> Unit
 ) {
 
@@ -244,12 +255,31 @@ fun GreenButton(
         colors = ButtonDefaults.textButtonColors(colorResource(id = R.color.green)),
         onClick = {
             onClick()
-        }) {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            color = colorResource(id = R.color.white)
-        )
+        },
+        enabled = enabled
+    )
+    {
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(25.dp)
+            )
+            Text("Loading...",
+                fontSize = 16.sp,
+                color = colorResource(id = R.color.white),
+                modifier = Modifier.padding(start = 20.dp))
+        }else{
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                color = colorResource(id = R.color.white)
+            )
+        }
+
+
+
     }
 }
 
