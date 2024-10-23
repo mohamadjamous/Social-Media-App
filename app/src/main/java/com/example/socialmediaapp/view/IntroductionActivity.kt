@@ -263,8 +263,8 @@ fun GreenButton(
         if (isLoading) {
             CircularProgressIndicator(
                 color = Color.White,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(25.dp)
+                strokeWidth = 4.dp,
+                modifier = Modifier.size(35.dp)
             )
             Text("Loading...",
                 fontSize = 16.sp,

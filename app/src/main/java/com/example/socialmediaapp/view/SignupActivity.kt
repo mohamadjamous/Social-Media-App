@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,9 +79,12 @@ class SignupActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
+fun SignupScreen(
+    navController: NavController,
+    viewModel: SignupViewModel = SignupViewModel() // obtain the ViewModel from the lifecycle
+    , onBackClick: () -> Unit
+) {
 
-    val viewModel = SignupViewModel()
     var fullName by remember { mutableStateOf("") }
     var emailAddress by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf(viewModel.createUserName(fullName = fullName)) }
@@ -90,9 +94,7 @@ fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current  // Get the context from the composable
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-    val signUpMessage by viewModel.signUpStateMessage.collectAsStateWithLifecycle()
-    val isSuccessful by viewModel.isSuccessful.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsState()
 
     Box(contentAlignment = Alignment.Center) {
 
@@ -128,8 +130,10 @@ fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
 
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it
-                                    userName = viewModel.createUserName(fullName)},
+                    onValueChange = {
+                        fullName = it
+                        userName = viewModel.createUserName(fullName)
+                    },
                     label = { Text("Full Name") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
@@ -237,15 +241,13 @@ fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
                 )
 
 
-
-
                 GreenButton(
                     title = "Sign up",
                     modifier = Modifier
                         .padding(top = 30.dp)
                         .animateContentSize(),
-                    enabled = !isLoading,
-                    isLoading = isLoading
+                    enabled = true,
+                    isLoading = state.isLoading
                 ) {
 
                     // check if user info are valid
@@ -270,17 +272,18 @@ fun SignupScreen(navController: NavController, onBackClick: () -> Unit) {
                             userName = userName,
                             imageUri = selectedImageUri
                         )
-                    }
 
-                    if (!isLoading)
-                        Toast.makeText(context, signUpMessage, Toast.LENGTH_SHORT).show()
-
-                    if (isSuccessful) {
-                        navController.navigate("feed") {
-                            popUpTo("auth") {
-                                inclusive = true
+                        Toast.makeText(context, "Signing up...", Toast.LENGTH_SHORT).show()
+                        if (state.isSuccessful) {
+                            println("IsSuccessfulState: " + state.isSuccessful)
+                            Toast.makeText(context, state.signupMessage, Toast.LENGTH_SHORT).show()
+                            navController.navigate("feed") {
+                                popUpTo("auth") {
+                                    inclusive = true
+                                }
                             }
                         }
+
                     }
 
                 }

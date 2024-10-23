@@ -10,26 +10,23 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class SignupViewModel : ViewModel() {
 
-    // State representing UI states
-    sealed class SignUpState {
-        object Idle : SignUpState()
-        object Loading : SignUpState()
-        data class Success(val message: String) : SignUpState()
-        data class Error(val errorMessage: String) : SignUpState()
-    }
+    // Data class representing UI state
+    data class SignupState(
+        val isLoading: Boolean = false,
+        val isSuccessful: Boolean = false,
+        val signupMessage: String = ""
+    )
 
-    var _isLoading = MutableStateFlow(false)
-    var _signUpStateMessage = MutableStateFlow("")
-    var _isSuccessful = MutableStateFlow(false)
 
-    val isLoading = _isLoading.asStateFlow()
-    val signUpStateMessage = _signUpStateMessage.asStateFlow()
-    val isSuccessful = _isSuccessful.asStateFlow()
-
+    // State for loading and count values
+    private val _state = MutableStateFlow(SignupState())
+    val state: StateFlow<SignupState> = _state
 
     fun signupUser(
         fullName: String,
@@ -41,8 +38,7 @@ class SignupViewModel : ViewModel() {
         val auth = Firebase.auth
         val db = FirebaseFirestore.getInstance() // FireStore instance
         val storage = FirebaseStorage.getInstance() // Firebase Storage instance
-        _isLoading.value = true
-
+        _state.update { it.copy(isLoading = true) }
 
         // Create user with email and password in Firebase Authentication
         auth.createUserWithEmailAndPassword(email, password)
@@ -84,24 +80,18 @@ class SignupViewModel : ViewModel() {
                                             println("User information saved successfully in Firestore with profile image URL!")
                                             // Optionally, call updateUI(user) if needed
 //                                            _isLoading.value = SignUpState.Success("User created successfully with profile image")
-                                            _signUpStateMessage.value = "User created successfully with profile image"
-                                            _isLoading.value = false
-                                            _isSuccessful.value = true
+                                            _state.update { it.copy(isLoading = false, isSuccessful = true, signupMessage = "User created successfully with profile image") }
                                         }
                                         .addOnFailureListener { e ->
                                             println("Error saving user information: ${e.message}")
 //                                            _isLoading.value = SignUpState.Error("Error saving user: ${e.message}")
-                                            _signUpStateMessage.value = "Error saving user: ${e.message}"
-                                            _isLoading.value = false
-                                            _isSuccessful.value = false
+                                            _state.update { it.copy(isLoading = false, isSuccessful = false, signupMessage = "Error saving user: ${e.message}") }
 
                                         }
                                 } else {
                                     println("Error getting download URL: ${task.exception?.message}")
 //                                    _isLoading.value = SignUpState.Error("Error getting image download URL")
-                                    _signUpStateMessage.value = "Error getting image download URL"
-                                    _isLoading.value = false
-                                    _isSuccessful.value = false
+                                    _state.update { it.copy(isLoading = false, isSuccessful = false, signupMessage = "Error getting image download URL") }
 
                                 }
                             }
@@ -121,17 +111,14 @@ class SignupViewModel : ViewModel() {
                                 .addOnSuccessListener {
                                     println("User information saved successfully in FireStore without profile image!")
 //                                    _isLoading.value = SignUpState.Success("User created successfully without profile image")
-                                    _signUpStateMessage.value = "User created successfully without profile image"
-                                    _isLoading.value = false
-                                    _isSuccessful.value = true
+                                    _state.update { it.copy(isLoading = false, isSuccessful = true, signupMessage = "User created successfully without profile image") }
 
                                 }
                                 .addOnFailureListener { e ->
                                     println("Error saving user information: ${e.message}")
 //                                    _isLoading.value = SignUpState.Error("Error saving user: ${e.message}")
-                                    _signUpStateMessage.value = "Error saving user: ${e.message}"
-                                    _isLoading.value = false
-                                    _isSuccessful.value = false
+                                    _state.update { it.copy(isLoading = false, isSuccessful = false, signupMessage = "Error saving user: ${e.message}") }
+
                                 }
                         }
                     }
@@ -139,9 +126,8 @@ class SignupViewModel : ViewModel() {
                     // If sign-up fails, display a message to the user.
                     println("createUserWithEmail:failure ${task.exception?.message}")
 //                    _isLoading.value = SignUpState.Error("Sign up failed: ${task.exception?.message}")
-                    _signUpStateMessage.value = "Sign up failed: ${task.exception?.message}"
-                    _isLoading.value = false
-                    _isSuccessful.value = false
+                    _state.update { it.copy(isLoading = false, isSuccessful = false, signupMessage = "Sign up failed: ${task.exception?.message}") }
+
                 }
             }
     }
