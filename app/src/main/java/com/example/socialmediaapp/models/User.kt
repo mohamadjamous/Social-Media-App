@@ -1,4 +1,4 @@
-package com.example.socialmediaapp.model
+package com.example.socialmediaapp.models
 
 data class User(
     val fullName: String,

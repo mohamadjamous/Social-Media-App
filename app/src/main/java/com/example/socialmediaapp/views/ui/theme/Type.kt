@@ -1,4 +1,4 @@
-package com.example.socialmediaapp.view.ui.theme
+package com.example.socialmediaapp.views.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

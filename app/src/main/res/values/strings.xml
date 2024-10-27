@@ -9,4 +9,5 @@
     <string name="title_activity_feed">FeedActivity</string>
     <string name="title_activity_followers">FollowersActivity</string>
     <string name="title_activity_profile">ProfileActivity</string>
+    <string name="title_activity_login_page">LoginPage</string>
 </resources>

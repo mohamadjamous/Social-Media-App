@@ -1,4 +1,4 @@
-package com.example.socialmediaapp.viewmodel
+package com.example.socialmediaapp.viewmodels
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

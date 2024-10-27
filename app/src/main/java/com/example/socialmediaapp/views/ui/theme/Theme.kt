@@ -1,6 +1,5 @@
-package com.example.socialmediaapp.view.ui.theme
+package com.example.socialmediaapp.views.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

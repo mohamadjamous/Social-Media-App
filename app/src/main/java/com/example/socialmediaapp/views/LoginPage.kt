@@ -1,9 +1,6 @@
-package com.example.socialmediaapp.view
+package com.example.socialmediaapp.views
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,13 +17,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -41,43 +41,44 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.socialmediaapp.R
-import com.example.socialmediaapp.view.ui.theme.SocialMediaAppTheme
+import com.example.socialmediaapp.viewmodels.AuthState
+import com.example.socialmediaapp.viewmodels.AuthViewModel
+import com.example.socialmediaapp.views.components.BackButton
+import com.example.socialmediaapp.views.components.GreenButton
+import com.example.socialmediaapp.views.ui.theme.SocialMediaAppTheme
 
-class LoginActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            val navController = rememberNavController()
-
-            SocialMediaAppTheme {
-                LoginScreen(
-                    onBackClick = { },
-                    onSignupClick = { },
-                    onForgotPasswordClick = { }) {
-
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    onBackClick: () -> Unit,
-    onSignupClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit,
-    onSignInClick: () -> Unit
+fun LoginPage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    authViewModel: AuthViewModel
 ) {
 
     var emailAddress by remember { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+    val authState = authViewModel.authState.observeAsState()
+    val context = LocalContext.current
+
+
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> navController.navigate("feed")
+            is AuthState.Error -> Toast.makeText(
+                context,
+                (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
+            ).show()
+
+            else -> Unit
+        }
+    }
+
 
     Column(modifier = Modifier.padding(all = 10.dp)) {
 
@@ -86,7 +87,7 @@ fun LoginScreen(
                 .padding(top = 15.dp)
                 .padding(15.dp)
         ) {
-            onBackClick()
+            navController.popBackStack()
         }
 
         Text(
@@ -156,18 +157,19 @@ fun LoginScreen(
 
         ClickableText(
             text = AnnotatedString("forgot your password?"),
-            onClick = { onForgotPasswordClick() },
+            onClick = { navController.navigate("forgotpassword") },
             modifier = Modifier
                 .padding(top = 30.dp)
                 .padding(start = 10.dp)
         )
 
 
-        GreenButton(title = "Sign in", modifier = Modifier.padding(top = 70.dp),
+        GreenButton(
+            title = "Sign in", modifier = Modifier.padding(top = 70.dp),
             enabled = true,
-            isLoading = false
+            isLoading = authState.value is AuthState.Loading,
         ) {
-            onSignInClick()
+            authViewModel.login(emailAddress, password)
         }
 
         Box(
@@ -200,7 +202,7 @@ fun LoginScreen(
                     )
                         .firstOrNull()?.let {
                             // Handle click on "Let's Sign up"
-                            onSignupClick()
+                            navController.navigate("signup")
                         }
                 },
                 style = TextStyle(
@@ -213,17 +215,19 @@ fun LoginScreen(
 
 
     }
+
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun GreetingPreview() {
+fun LoginPreview() {
     SocialMediaAppTheme {
-        LoginScreen(
-            onBackClick = { },
-            onSignupClick = {},
-            onForgotPasswordClick = { }) {
+        val navController = rememberNavController()
 
-        }
+        LoginPage(
+            modifier = Modifier,
+            navController = navController,
+            authViewModel = AuthViewModel()
+        )
     }
 }

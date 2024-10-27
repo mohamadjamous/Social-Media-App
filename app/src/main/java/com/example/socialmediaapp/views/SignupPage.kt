@@ -1,12 +1,8 @@
-package com.example.socialmediaapp.view
+package com.example.socialmediaapp.views
 
 import android.net.Uri
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
@@ -23,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,8 +26,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,48 +50,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
 import com.example.socialmediaapp.R
-import com.example.socialmediaapp.view.ui.theme.SocialMediaAppTheme
-import com.example.socialmediaapp.viewmodel.SignupViewModel
-
-class SignupActivity : ComponentActivity() {
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            val navController = rememberNavController()
-            SocialMediaAppTheme {
-                SignupScreen(navController = navController) {
-                }
-            }
-        }
-    }
-}
+import com.example.socialmediaapp.viewmodels.AuthState
+import com.example.socialmediaapp.viewmodels.AuthViewModel
+import com.example.socialmediaapp.viewmodels.SignupViewModel
+import com.example.socialmediaapp.views.components.BackButton
+import com.example.socialmediaapp.views.components.GreenButton
+import com.example.socialmediaapp.views.ui.theme.SocialMediaAppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(
+fun SignupPage(
+    modifier: Modifier = Modifier,
     navController: NavController,
-    viewModel: SignupViewModel = SignupViewModel() // obtain the ViewModel from the lifecycle
-    , onBackClick: () -> Unit
+    authViewModel: AuthViewModel,
 ) {
 
     var fullName by remember { mutableStateOf("") }
     var emailAddress by remember { mutableStateOf("") }
-    var userName by remember { mutableStateOf(viewModel.createUserName(fullName = fullName)) }
+    var userName by remember { mutableStateOf(createUserName(fullName = fullName)) }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current  // Get the context from the composable
-    val state by viewModel.state.collectAsState()
+    val authState = authViewModel.authState.observeAsState()
+
+
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> navController.navigate("feed")
+            is AuthState.Error -> Toast.makeText(
+                context,
+                (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
+            ).show()
+
+            else -> Unit
+        }
+    }
+
 
     Box(contentAlignment = Alignment.Center) {
 
@@ -104,7 +102,7 @@ fun SignupScreen(
                     .padding(top = 15.dp)
                     .padding(15.dp)
             ) {
-                onBackClick()
+                navController.popBackStack()
             }
 
             Column(
@@ -132,7 +130,7 @@ fun SignupScreen(
                     value = fullName,
                     onValueChange = {
                         fullName = it
-                        userName = viewModel.createUserName(fullName)
+                        userName = createUserName(fullName)
                     },
                     label = { Text("Full Name") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -247,11 +245,11 @@ fun SignupScreen(
                         .padding(top = 30.dp)
                         .animateContentSize(),
                     enabled = true,
-                    isLoading = state.isLoading
+                    isLoading = authState.value == AuthState.Loading
                 ) {
 
                     // check if user info are valid
-                    if (!viewModel.isValidInfo(
+                    if (!isValidInfo(
                             selectedImageUri = selectedImageUri,
                             fullName = fullName,
                             email = emailAddress,
@@ -260,29 +258,18 @@ fun SignupScreen(
                         )
                     ) {
                         Toast.makeText(context, "Info missing!", Toast.LENGTH_SHORT).show()
-                    } else if (!viewModel.checkPassword(password = password)) {
+                    } else if (!checkPassword(password = password)) {
                         Toast.makeText(context, "Password is weak!", Toast.LENGTH_SHORT).show()
                     } else if (password != confirmPassword) {
                         Toast.makeText(context, "Passwords don't match!", Toast.LENGTH_SHORT).show()
                     } else {
-                        viewModel.signupUser(
+                        authViewModel.signup(
                             fullName = fullName,
                             email = emailAddress,
                             password = password,
                             userName = userName,
                             imageUri = selectedImageUri
                         )
-
-                        Toast.makeText(context, "Signing up...", Toast.LENGTH_SHORT).show()
-                        if (state.isSuccessful) {
-                            println("IsSuccessfulState: " + state.isSuccessful)
-                            Toast.makeText(context, state.signupMessage, Toast.LENGTH_SHORT).show()
-                            navController.navigate("feed") {
-                                popUpTo("auth") {
-                                    inclusive = true
-                                }
-                            }
-                        }
 
                     }
 
@@ -362,14 +349,81 @@ fun ProfilePhotoPicker(
 }
 
 
+fun checkPassword(password: String): Boolean {
+    // Define basic password rules: at least 8 characters, contains upper, lower, digit, and special char
+    val minLength = 8
+    val hasUpperCase = password.any { it.isUpperCase() }
+    val hasLowerCase = password.any { it.isLowerCase() }
+    val hasDigit = password.any { it.isDigit() }
+    val hasSpecialChar = password.any { !it.isLetterOrDigit() }
+
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar
+}
+
+fun createUserName(fullName: String): String {
+    val names = fullName.trim().split(" ")
+    return if (names.size >= 2) {
+        // Combine the first letter of the first name with the full last name
+        val firstNameInitial = names[0].take(1).lowercase()
+        val lastName = names[1].lowercase()
+        "$firstNameInitial$lastName"
+    } else {
+        // Return the full name lowercased if there's no space
+        fullName.lowercase().replace(" ", "")
+    }
+}
+
+fun isValidInfo(
+    selectedImageUri: Uri?,
+    fullName: String,
+    email: String,
+    password: String,
+    userName: String
+): Boolean {
+
+    println("UserInfo: $selectedImageUri")
+    println("UserInfo: $fullName")
+    println("UserInfo: $email")
+    println("UserInfo: $password")
+    println("UserInfo: $userName")
+
+
+    // Check if image URI is valid (non-null and not empty)
+    if (selectedImageUri == null) {
+        return false
+    }
+
+    // Check if full name contains at least two words
+    if (fullName.trim().split("\\s+".toRegex()).size < 2) {
+        return false
+    }
+
+    // Check if email is valid using Android's Patterns
+    if (email.isEmpty()) {
+        return false
+    }
+
+    // Check if password meets minimum requirements (e.g., at least 8 characters)
+    if (password.length < 8) {
+        return false
+    }
+
+    // Check if username is not empty and meets length requirements (e.g., at least 3 characters)
+    if (userName.isEmpty() || userName.length < 3) {
+        return false
+    }
+
+    // If all validations pass, return true
+    return true
+}
+
+
 @Preview(showSystemUi = true)
 @Composable
-fun GreetingPreview2() {
+fun SignupPreview() {
     SocialMediaAppTheme {
         val navController = rememberNavController()
 
-        SignupScreen(navController = navController) {
-
-        }
+        SignupPage(navController = navController, authViewModel = AuthViewModel())
     }
 }
