@@ -10,6 +10,7 @@ import com.example.socialmediaapp.views.FeedPage
 import com.example.socialmediaapp.views.ForgotPasswordPage
 import com.example.socialmediaapp.views.IntroPage
 import com.example.socialmediaapp.views.LoginPage
+import com.example.socialmediaapp.views.ProfilePage
 import com.example.socialmediaapp.views.SignupPage
 
 
@@ -43,6 +44,10 @@ fun AppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel) {
 
         composable("search") {
 
+        }
+
+        composable("profile") {
+            ProfilePage(navController = navController, authViewModel = authViewModel)
         }
 
 

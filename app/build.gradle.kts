@@ -78,6 +78,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("io.coil-kt.coil3:coil-compose:3.0.0-rc01")
     implementation("androidx.activity:activity:1.8.1")
+    implementation("io.coil-kt:coil-compose:2.0.0-rc01")
 
 
 }

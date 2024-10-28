@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.socialmediaapp.R
+import com.example.socialmediaapp.models.Post
 import com.example.socialmediaapp.views.ui.theme.SocialMediaAppTheme
 
 @Composable
@@ -37,21 +40,28 @@ fun FeedPage(
 
 ) {
 
-//    val authState = authViewModel.authState.observeAsState()
-//
-//    LaunchedEffect(authState.value) {
-//        when(authState.value){
-//            is AuthState.Unauthenticated -> navController.navigate("login")
-//            else -> Unit
-//        }
-//    }
+
+
     val context = LocalContext.current
+    val posts = listOf(Post("https://img.freepik.com/premium-photo/wide-angle-shot-single-tree-growing-clouded-sky-sunset-surrounded-by-grass_1033124-10.jpg",
+        "User Name",
+        "52 mintues ago",
+        true,
+        "https://img.freepik.com/premium-photo/wide-angle-shot-single-tree-growing-clouded-sky-sunset-surrounded-by-grass_1033124-10.jpg",
+        "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
+        10,20), Post("https://img.freepik.com/premium-photo/wide-angle-shot-single-tree-growing-clouded-sky-sunset-surrounded-by-grass_1033124-10.jpg",
+        "User Name",
+        "52 mintues ago",
+        true,
+        "https://img.freepik.com/premium-photo/wide-angle-shot-single-tree-growing-clouded-sky-sunset-surrounded-by-grass_1033124-10.jpg",
+        "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
+        10,20))
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-
+            Toast.makeText(context, "Image URI: $it", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -73,7 +83,6 @@ fun FeedPage(
         Column{
             Surface(onClick = {
                 launcher.launch("image/*")
-                Toast.makeText(context, "Image clicked", Toast.LENGTH_SHORT).show()
             }) {
             Image(painterResource(id = R.drawable.camera),
                 contentDescription = "image",
@@ -82,9 +91,13 @@ fun FeedPage(
                     )
             }
 
-
-
             Text(text = "Timeline", fontSize = 20.sp, modifier = Modifier.padding(top = 20.dp))
+
+            Surface(onClick = {
+                navController.navigate("profile")
+            }) {
+            Text(text = "Profile", fontSize = 16.sp, modifier = Modifier.padding(top = 5.dp))
+            }
         }
 
             Spacer(modifier = Modifier.width(250.dp))
@@ -92,17 +105,21 @@ fun FeedPage(
 
             Image(painterResource(id = R.drawable.search),
                 contentDescription = "image",
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier
+                    .size(30.dp)
                     .clickable { navController.navigate("search") }
             )
 
         }
 
-        TextButton(onClick = {
-//            authViewModel.signout()
-        }) {
-            Text(text = "Sign out")
+
+        LazyColumn {
+            items(posts) { post ->
+                PostView(post = post)
+            }
         }
+
+
     }
 }
 
