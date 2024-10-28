@@ -33,12 +33,19 @@ fun AppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel) {
         }
 
         composable("feed") {
-            FeedPage(navController = navController, authViewModel = authViewModel)
+//            FeedPage(navController = navController, authViewModel = authViewModel)
+            FeedPage(navController = navController)
         }
 
         composable("forgotpassword") {
             ForgotPasswordPage(navController = navController, authViewModel = authViewModel)
         }
+
+        composable("search") {
+
+        }
+
+
 
 
     })

@@ -1,9 +1,13 @@
 package com.example.socialmediaapp.viewmodels
 
+import android.content.Context
 import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.google.android.gms.tasks.OnFailureListener
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -54,7 +58,6 @@ class AuthViewModel : ViewModel() {
         userName: String,
         imageUri: Uri?
     ) {
-        val auth = Firebase.auth
         val db = FirebaseFirestore.getInstance() // FireStore instance
         val storage = FirebaseStorage.getInstance() // Firebase Storage instance
         _authState.value = AuthState.Loading
@@ -159,6 +162,26 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Unauthenticated
     }
 
+
+    fun resetPassword(email: String) {
+
+        _authState.value = AuthState.Loading
+        Firebase.auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _authState.value = AuthState.Authenticated
+                } else {
+                    _authState.value = AuthState.Error(
+                        task.exception?.message ?: "Something went wrong"
+                    )
+                }
+            }
+            .addOnFailureListener {
+                _authState.value = AuthState.Error(
+                    it.message ?: "Something went wrong"
+                )
+            }
+    }
 
 }
 
