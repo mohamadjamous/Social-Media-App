@@ -1,9 +1,7 @@
 package com.example.socialmediaapp.models
 
-data class User(
-    val fullName: String,
-    val email: String,
-    val password: String,
-    val userName: String,
-    val photoPath: String
-)
+class User(val fullName: String, val email: String,
+           var password: String, val userName: String, val profileImageUrl: String) {
+
+    constructor() : this("", "", "", "", "")
+}

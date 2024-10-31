@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialmediaapp.viewmodels.AuthViewModel
+import com.example.socialmediaapp.viewmodels.FeedViewModel
 import com.example.socialmediaapp.views.FeedPage
 import com.example.socialmediaapp.views.ForgotPasswordPage
 import com.example.socialmediaapp.views.IntroPage
@@ -15,11 +16,11 @@ import com.example.socialmediaapp.views.SignupPage
 
 
 @Composable
-fun AppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel) {
+fun AppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, startDestination : String) {
 
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "intro", builder = {
+    NavHost(navController = navController, startDestination = startDestination, builder = {
 
         composable("intro") {
             IntroPage(navController = navController, authViewModel = authViewModel)
@@ -35,7 +36,7 @@ fun AppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel) {
 
         composable("feed") {
 //            FeedPage(navController = navController, authViewModel = authViewModel)
-            FeedPage(navController = navController)
+            FeedPage(navController = navController, feedViewModel = FeedViewModel())
         }
 
         composable("forgotpassword") {

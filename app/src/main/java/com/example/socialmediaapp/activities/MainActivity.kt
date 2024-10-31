@@ -1,5 +1,6 @@
 package com.example.socialmediaapp.activities
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -72,17 +73,36 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
+    // True if it's the first time
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         auth = Firebase.auth
 
+        val sharedPref: Boolean = getSharedPreferences("intro-state", Context.MODE_PRIVATE).getBoolean("intro-state", true)
+
+
         val authViewModel : AuthViewModel by viewModels()
+        if (sharedPref){
+
+            // Get the shared preferences editor
+            val sharedPreferences = getSharedPreferences("intro-state", Context.MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+
+            // Put the boolean value (true or false)
+            editor.putBoolean("intro-state", false) // or false, depending on your logic
+
+            // Apply the changes
+            editor.apply()
+        }
+
         setContent {
             SocialMediaAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppNavigation(modifier =  Modifier.padding(innerPadding),authViewModel = authViewModel)
+                    AppNavigation(modifier =  Modifier.padding(innerPadding)
+                        ,authViewModel = authViewModel,
+                        if (sharedPref) "intro" else "login")
                 }
             }
         }
