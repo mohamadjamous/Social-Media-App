@@ -85,4 +85,8 @@ dependencies {
     // Time conversion
     implementation("org.ocpsoft.prettytime:prettytime:5.0.1.Final")
 
+    // Glide for loading images
+    implementation("com.github.skydoves:landscapist-glide:1.3.7")
+
+
 }

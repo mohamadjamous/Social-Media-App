@@ -29,6 +29,7 @@ import coil3.compose.AsyncImage
 import com.example.socialmediaapp.R
 import com.example.socialmediaapp.models.Post
 import com.example.socialmediaapp.ui.theme.SocialMediaAppTheme
+import com.skydoves.landscapist.glide.GlideImage
 import org.ocpsoft.prettytime.PrettyTime
 import java.util.Date
 import java.util.Locale
@@ -55,14 +56,9 @@ fun PostView(post: Post) {
         ) {
 
 
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(post.postImage)
-                    .crossfade(true)
-                    .build(),
+            GlideImage(
+                imageModel = post.profileImage,
                 contentDescription = null,
-                placeholder = painterResource(R.drawable.person),
-                error = painterResource(id = R.drawable.person),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
@@ -96,14 +92,10 @@ fun PostView(post: Post) {
 
         }
 
-        val imageRequest = ImageRequest.Builder(LocalContext.current)
-            .data(post.postImage)
-            .addHeader("Content-Type", post.profileImage) // or image/png if appropriate
-            .build()
 
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = null,
+        GlideImage(
+            imageModel = post.postImage,
+            contentDescription = "null",
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .height(300.dp)
@@ -168,7 +160,7 @@ fun PostPreview() {
     SocialMediaAppTheme {
         PostView(
             post = Post(
-                "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/post_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=9fa73dba-456c-448c-bfe9-b207325372b0",
+                "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/profile_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=c950a3aa-8341-4adb-97a5-7ee229882ed0",
                 "User Name",
                 "1730389310032",
                 true,
