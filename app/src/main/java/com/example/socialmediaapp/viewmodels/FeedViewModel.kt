@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import com.example.socialmediaapp.models.Post
 import com.example.socialmediaapp.models.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.storage.FirebaseStorage
@@ -26,6 +27,7 @@ class FeedViewModel : ViewModel() {
     private val _feedState = MutableLiveData<FeedState>()
     val feedState: LiveData<FeedState> = _feedState
     val postsLiveData: MutableState<List<Post>> = mutableStateOf(emptyList())
+    val isLoading: MutableState<Boolean> = mutableStateOf(false)
 
     init {
         fetchPosts()
@@ -64,19 +66,18 @@ class FeedViewModel : ViewModel() {
                         val downloadUri = task.result
 
                         // Prepare the user data to save in Firestore
-                        val userData = hashMapOf(
+                        val postData = hashMapOf(
                             "uid" to user.uid,
                             "profileImage" to userAccount.value!!.profileImageUrl,
                             "userName" to userAccount.value!!.userName,
                             "milliseconds" to getCurrentDateTimeInMilliseconds(),
                             "postImage" to downloadUri.toString(),
-                            "caption" to caption,
+                            "caption" to caption
                         )
 
                         // Save the post data in the "posts" collection in Firestore
                         db.collection("posts")
-                            .document(user.uid) // The user's UID is used as the document ID
-                            .set(userData)
+                            .add(postData) // Adds a new document with a unique ID in the "posts" collection
                             .addOnSuccessListener {
                                 println("User post information saved successfully in Firestore with image URL!")
                                 // Optionally, call updateUI(user) if needed
@@ -138,11 +139,26 @@ class FeedViewModel : ViewModel() {
     }
 
 
+    fun likePost(postId: String) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("posts")
+            .document(postId).update("likes", FieldValue.arrayUnion(auth.currentUser!!.uid))
+            .addOnSuccessListener {
+                println("Post liked successfully!")
+            }
+            .addOnFailureListener { e ->
+                println("Error liking post: ${e.message}")
+            }
+    }
+
+
     // Get all posts for timeline feed page
     fun fetchPosts(){
 
         val db = FirebaseFirestore.getInstance()
         _feedState.value = FeedState.Loading
+        isLoading.value = true
 
         db.collection("posts").get()
             .addOnSuccessListener { documents ->
@@ -158,15 +174,20 @@ class FeedViewModel : ViewModel() {
                 if (tempPosts.isNotEmpty()) {
                     _feedState.value = FeedState.DoneProcessing
                     postsLiveData.value = tempPosts
+                    println("PostsLiveDataSize: ${postsLiveData.value.size}")
+                    println("PostsLiveDataSize: ${tempPosts.size}")
+                    isLoading.value = false
                 } else {
                     _feedState.value = FeedState.Error("Something went wrong")
                     postsLiveData.value = emptyList()
+                    isLoading.value = false
                 }
             }
             .addOnFailureListener { exception ->
                 // Handle failure (e.g., log error, set userLiveData to null, etc.)
                 _feedState.value = FeedState.Error(exception.message ?: "Something went wrong")
                 postsLiveData.value = emptyList()
+                isLoading.value = false
             }
 
     }

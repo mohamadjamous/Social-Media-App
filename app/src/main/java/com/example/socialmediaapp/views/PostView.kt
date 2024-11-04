@@ -12,8 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,22 +30,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.request.ImageRequest
-import coil3.compose.AsyncImage
 import com.example.socialmediaapp.R
 import com.example.socialmediaapp.models.Post
 import com.example.socialmediaapp.ui.theme.SocialMediaAppTheme
+import com.example.socialmediaapp.viewmodels.FeedViewModel
+import com.example.socialmediaapp.views.components.LikeButton
 import com.skydoves.landscapist.glide.GlideImage
 import org.ocpsoft.prettytime.PrettyTime
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun PostView(post: Post) {
+fun PostView(post: Post, feedViewModel: FeedViewModel = FeedViewModel()) {
 
-    println("PostValue: " + post.postImage)
-    println("PostValue: " + post.profileImage)
-    println("PostValue: " + post.userName)
+    var followState by remember { mutableStateOf(post.followState) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -83,10 +88,24 @@ fun PostView(post: Post) {
             Spacer(modifier = Modifier.width(70.dp))
 
 
-            if (post.followState) {
-                Text("Following", modifier = Modifier.padding(top = 20.dp))
+            if (followState) {
+                TextButton(
+                    onClick = {
+                        followState = false
+                    },
+                    modifier = Modifier.padding(top = 10.dp)
+                ) {
+                    Text("Following")
+                }
             } else {
-                Text("Follow", modifier = Modifier.padding(top = 20.dp))
+                OutlinedButton(
+                    onClick = {
+                        followState = true
+                    },
+                    modifier = Modifier.padding(top = 10.dp)
+                ) {
+                    Text("Follow")
+                }
             }
 
 
@@ -122,10 +141,12 @@ fun PostView(post: Post) {
 
             Spacer(modifier = Modifier.width(190.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.like),
-                contentDescription = ""
-            )
+            LikeButton(like = false,
+                onLike = {
+                    feedViewModel.likePost(post.uid)
+            }, onDislike = {
+
+            })
 
             Text(
                 text = post.comments.toString(),
@@ -159,15 +180,16 @@ fun formatTimeAgo(milliseconds: Long): String {
 fun PostPreview() {
     SocialMediaAppTheme {
         PostView(
-            post = Post(
+            post = Post("",
                 "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/profile_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=c950a3aa-8341-4adb-97a5-7ee229882ed0",
                 "User Name",
                 "1730389310032",
                 true,
                 "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/post_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=9fa73dba-456c-448c-bfe9-b207325372b0",
                 "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
-                10, 20
+                10, listOf()
             )
+            , feedViewModel = FeedViewModel()
         )
     }
 }

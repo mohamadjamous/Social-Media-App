@@ -10,6 +10,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -67,13 +68,13 @@ fun FeedPage(
 
 
     val context = LocalContext.current
-    var posts = feedViewModel.postsLiveData
+    val posts = feedViewModel.postsLiveData
+    val isLoading = feedViewModel.isLoading
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
-    val feedState = feedViewModel.feedState.observeAsState()
-    var isLoading = false
+    val feedState = feedViewModel.feedState
 
 
     val launcher = rememberLauncherForActivityResult(
@@ -94,23 +95,15 @@ fun FeedPage(
                 Toast.makeText(context, "Published Successfully", Toast.LENGTH_SHORT).show()
                 feedViewModel.fetchPosts()
             }
+
             is FeedState.Error -> {
                 Toast.makeText(
                     context,
                     (feedState.value as FeedState.Error).message,
                     Toast.LENGTH_SHORT
                 ).show()
-                isLoading = false
             }
 
-            is FeedState.Loading -> {
-                isLoading = true
-            }
-
-            is FeedState.DoneProcessing ->
-            {
-                isLoading = false
-            }
 
             else -> Unit
         }
@@ -123,138 +116,145 @@ fun FeedPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-
-        if (isLoading){
-            CircularProgress()
-        }
-
-
-        Row(
-            modifier = Modifier
-                .padding(top = 40.dp)
-                .padding(start = 10.dp)
-                .padding(end = 10.dp)
-        ) {
-
+        Box {
 
             Column {
-                Surface(onClick = {
-                    launcher.launch("image/*")
-                }) {
-                    Image(
-                        painterResource(id = R.drawable.camera),
-                        contentDescription = "image",
-                        modifier = Modifier.size(30.dp)
-
-                    )
+                if (isLoading.value) {
+                    CircularProgress()
                 }
 
-                Text(text = "Timeline", fontSize = 20.sp, modifier = Modifier.padding(top = 20.dp))
-
-                Surface(onClick = {
-                    navController.navigate("profile")
-                }) {
-                    Text(
-                        text = "Profile",
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(top = 5.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(250.dp))
+                Row(
+                    modifier = Modifier
+                        .padding(top = 40.dp)
+                        .padding(start = 10.dp)
+                        .padding(end = 10.dp)
+                ) {
 
 
-            Image(painterResource(id = R.drawable.search),
-                contentDescription = "image",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable { navController.navigate("search") }
-            )
-
-        }
-
-
-        LazyColumn {
-           items(posts.value.size){
-               PostView(post = posts.value[it])
-           }
-        }
-
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                modifier = Modifier.fillMaxHeight(),
-                sheetState = sheetState,
-                onDismissRequest = { showBottomSheet = false }
-            ) {
-                // Sheet content
-
-                var caption by remember { mutableStateOf("") }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
+                    Column {
                         Surface(onClick = {
-                            scope.launch { sheetState.hide() }.invokeOnCompletion {
-                                if (!sheetState.isVisible) {
-                                    showBottomSheet = false
-                                }
-                            }
+                            launcher.launch("image/*")
                         }) {
                             Image(
-                                painterResource(id = R.drawable.baseline_cancel_24),
+                                painterResource(id = R.drawable.camera),
                                 contentDescription = "image",
                                 modifier = Modifier.size(30.dp)
 
                             )
                         }
+
+                        Text(
+                            text = "Timeline",
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(top = 20.dp)
+                        )
+
+                        Surface(onClick = {
+                            navController.navigate("profile")
+                        }) {
+                            Text(
+                                text = "Profile",
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(top = 5.dp)
+                            )
+                        }
                     }
 
-                    Image(
-                        painter = rememberAsyncImagePainter(model = selectedImageUri),
+                    Spacer(modifier = Modifier.width(250.dp))
+
+
+                    Image(painterResource(id = R.drawable.search),
                         contentDescription = "image",
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .padding(10.dp)
-
+                            .size(30.dp)
+                            .clickable { navController.navigate("search") }
                     )
 
+                }
 
-                    OutlinedTextField(
-                        value = caption,
-                        onValueChange = { caption = it },
-                        label = { Text("Caption") },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
-                            unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
-                        ),
-                        modifier = Modifier
-                            .padding(top = 30.dp)
-                            .padding(start = 20.dp)
-                            .padding(end = 20.dp)
-                    )
 
-                    GreenButton(
-                        title = "Publish Post",
-                        modifier = Modifier
-                            .padding(top = 100.dp)
-                            .padding(start = 60.dp)
-                            .padding(end = 60.dp)
-                            .animateContentSize(),
-                        enabled = true,
-                        isLoading = feedState.value == FeedState.Loading
-                    ) {
-                        // Upload post to firebase
-                        feedViewModel.uploadPost(selectedImageUri!!, caption)
+                LazyColumn {
+                    items(posts.value.size) {
+                        PostView(post = posts.value[it])
                     }
                 }
+
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        modifier = Modifier.fillMaxHeight(),
+                        sheetState = sheetState,
+                        onDismissRequest = { showBottomSheet = false }
+                    ) {
+                        // Sheet content
+
+                        var caption by remember { mutableStateOf("") }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Surface(onClick = {
+                                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                        if (!sheetState.isVisible) {
+                                            showBottomSheet = false
+                                        }
+                                    }
+                                }) {
+                                    Image(
+                                        painterResource(id = R.drawable.baseline_cancel_24),
+                                        contentDescription = "image",
+                                        modifier = Modifier.size(30.dp)
+
+                                    )
+                                }
+                            }
+
+                            Image(
+                                painter = rememberAsyncImagePainter(model = selectedImageUri),
+                                contentDescription = "image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp)
+                                    .padding(10.dp)
+
+                            )
+
+
+                            OutlinedTextField(
+                                value = caption,
+                                onValueChange = { caption = it },
+                                label = { Text("Caption") },
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedBorderColor = colorResource(id = R.color.green),  // Border color when focused
+                                    unfocusedBorderColor = colorResource(id = R.color.grey)  // Border color when not focused
+                                ),
+                                modifier = Modifier
+                                    .padding(top = 30.dp)
+                                    .padding(start = 20.dp)
+                                    .padding(end = 20.dp)
+                            )
+
+                            GreenButton(
+                                title = "Publish Post",
+                                modifier = Modifier
+                                    .padding(top = 100.dp)
+                                    .padding(start = 60.dp)
+                                    .padding(end = 60.dp)
+                                    .animateContentSize(),
+                                enabled = true,
+                                isLoading = feedState.value == FeedState.Loading
+                            ) {
+                                // Upload post to firebase
+                                feedViewModel.uploadPost(selectedImageUri!!, caption)
+                            }
+                        }
+                    }
+                }
+
+
             }
-
-
         }
     }
 
