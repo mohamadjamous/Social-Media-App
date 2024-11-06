@@ -1,6 +1,7 @@
 package com.example.socialmediaapp.views
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,9 +17,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,15 +40,36 @@ import com.example.socialmediaapp.ui.theme.SocialMediaAppTheme
 import com.example.socialmediaapp.viewmodels.FeedViewModel
 import com.example.socialmediaapp.views.components.LikeButton
 import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.coroutines.launch
 import org.ocpsoft.prettytime.PrettyTime
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun PostView(post: Post, feedViewModel: FeedViewModel = FeedViewModel()) {
+fun PostView(
+    post: Post,
+    feedViewModel: FeedViewModel = FeedViewModel(),
+    onCommentClick: () -> Unit
+) {
 
     var followState by remember { mutableStateOf(post.followState) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // Set likesCount only once when the composable loads
+    var likesCount by remember { mutableIntStateOf(post.likes.size) }
+
+    // Boolean variable to track if the user has liked the post
+    var isLiked by remember { mutableStateOf(false) }
+
+
+    // Check if the current user has liked the post when the composable is first composed
+    LaunchedEffect(post.postId) {
+        // Assuming auth.currentUser?.uid gives the current user ID
+        isLiked = feedViewModel.isUserLiked(post.postId)
+        println("IsLiked: $isLiked")
+    }
+
 
     Column(
         modifier = Modifier
@@ -141,22 +166,30 @@ fun PostView(post: Post, feedViewModel: FeedViewModel = FeedViewModel()) {
 
             Spacer(modifier = Modifier.width(190.dp))
 
-            LikeButton(like = false,
+            LikeButton(like = !isLiked,
                 onLike = {
-                    feedViewModel.likePost(post.uid)
-            }, onDislike = {
-
-            })
+                    coroutineScope.launch {
+                        likesCount = feedViewModel.likePost(post.postId)!!
+                    }
+                }, onDislike = {
+                    coroutineScope.launch {
+                        likesCount = feedViewModel.disLikePost(post.postId)!!
+                    }
+                })
 
             Text(
-                text = post.comments.toString(),
+                text = likesCount.toString(),
                 modifier = Modifier.padding(start = 5.dp)
             )
 
             Image(
                 painter = painterResource(id = R.drawable.baseline_comment_24),
                 contentDescription = "",
-                modifier = Modifier.padding(start = 25.dp)
+                modifier = Modifier
+                    .padding(start = 25.dp)
+                    .clickable(onClick = {
+                        onCommentClick()
+                    })
             )
 
             Text(
@@ -180,7 +213,9 @@ fun formatTimeAgo(milliseconds: Long): String {
 fun PostPreview() {
     SocialMediaAppTheme {
         PostView(
-            post = Post("",
+            post = Post(
+                "",
+                "",
                 "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/profile_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=c950a3aa-8341-4adb-97a5-7ee229882ed0",
                 "User Name",
                 "1730389310032",
@@ -188,8 +223,8 @@ fun PostPreview() {
                 "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/post_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=9fa73dba-456c-448c-bfe9-b207325372b0",
                 "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
                 10, listOf()
-            )
-            , feedViewModel = FeedViewModel()
+            ), feedViewModel = FeedViewModel(),
+            onCommentClick = {}
         )
     }
 }

@@ -4,7 +4,10 @@ import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -15,10 +18,16 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+enum class LoadState {
+    LOADING,
+    SUCCESS,
+    ERROR
+}
 
 class FeedViewModel : ViewModel() {
 
@@ -28,6 +37,10 @@ class FeedViewModel : ViewModel() {
     val feedState: LiveData<FeedState> = _feedState
     val postsLiveData: MutableState<List<Post>> = mutableStateOf(emptyList())
     val isLoading: MutableState<Boolean> = mutableStateOf(false)
+
+    private val _loadState = MutableLiveData(LoadState.LOADING)
+    val loadState: LiveData<LoadState> = _loadState
+    val post: MutableState<Post?> = mutableStateOf(null)
 
     init {
         fetchPosts()
@@ -102,6 +115,33 @@ class FeedViewModel : ViewModel() {
         }
     }
 
+
+    fun fetchPost(postId: String) {
+        val db = FirebaseFirestore.getInstance()
+        println("StartedFetchPost")
+
+        _loadState.value = LoadState.LOADING
+
+        db.collection("posts").document(postId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    post.value = document.toObject(Post::class.java)
+                    println("Fetched post successfully")
+                    _loadState.value = LoadState.SUCCESS
+                } else {
+                    // Handle the case where the post does not exist
+                    post.value = null
+                    _loadState.value = LoadState.ERROR
+                }
+            }
+            .addOnFailureListener { e ->
+                println("Error fetching post: ${e.message}")
+                post.value = null
+                _loadState.value = LoadState.ERROR
+            }
+    }
+
     // Get current user info
     private fun fetchUser(userId: String): MutableLiveData<User?> {
         val userLiveData = MutableLiveData<User?>()
@@ -139,19 +179,72 @@ class FeedViewModel : ViewModel() {
     }
 
 
-    fun likePost(postId: String) {
-        val db = FirebaseFirestore.getInstance()
 
-        db.collection("posts")
-            .document(postId).update("likes", FieldValue.arrayUnion(auth.currentUser!!.uid))
-            .addOnSuccessListener {
-                println("Post liked successfully!")
-            }
-            .addOnFailureListener { e ->
-                println("Error liking post: ${e.message}")
-            }
+    suspend fun likePost(postId: String): Int? {
+        val db = FirebaseFirestore.getInstance()
+        val postRef = db.collection("posts").document(postId)
+
+        return try {
+            // Update the "likes" array by adding the user's uid
+            postRef.update("likes", FieldValue.arrayUnion(auth.currentUser!!.uid)).await()
+
+            // Fetch the updated document to get the new likes count
+            val document = postRef.get().await()
+            val likes = document.get("likes") as? List<*>
+            val likesCount = likes?.size ?: 0
+
+            println("Updated likes count: $likesCount")
+            likesCount
+        } catch (e: Exception) {
+            println("Error updating or fetching likes count: ${e.message}")
+            null
+        }
     }
 
+
+    suspend fun disLikePost(postId: String): Int? {
+        val db = FirebaseFirestore.getInstance()
+        val postRef = db.collection("posts").document(postId)
+
+        return try {
+            // Update the "likes" array by removing the user's uid
+            postRef.update("likes", FieldValue.arrayRemove(auth.currentUser!!.uid)).await()
+
+            // Fetch the updated document to get the new likes count
+            val document = postRef.get().await()
+            val likes = document.get("likes") as? List<*>
+            val likesCount = likes?.size ?: 0
+
+            println("Updated likes count: $likesCount")
+            likesCount
+        } catch (e: Exception) {
+            println("Error updating or fetching likes count: ${e.message}")
+            null
+        }
+    }
+
+
+
+
+
+    suspend fun isUserLiked(postId: String): Boolean {
+        val db = FirebaseFirestore.getInstance()
+        val postRef = db.collection("posts").document(postId)
+
+        return try {
+            // Get the document of the post
+            val document = postRef.get().await()
+
+            // Get the list of likes
+            val likes = document.get("likes") as? List<*>
+
+            // Check if the userId exists in the likes list
+            likes?.contains(auth.currentUser!!.uid) == true
+        } catch (e: Exception) {
+            println("Error checking if user liked the post: ${e.message}")
+            false
+        }
+    }
 
     // Get all posts for timeline feed page
     fun fetchPosts(){
@@ -167,6 +260,7 @@ class FeedViewModel : ViewModel() {
                 for (document in documents) {
                     if (document != null && document.exists()) {
                         val post = document.toObject<Post>()
+                        post.postId = document.id
                         tempPosts.add(post)
                     }
                 }

@@ -66,7 +66,6 @@ fun FeedPage(
     feedViewModel: FeedViewModel
 ) {
 
-
     val context = LocalContext.current
     val posts = feedViewModel.postsLiveData
     val isLoading = feedViewModel.isLoading
@@ -172,10 +171,11 @@ fun FeedPage(
 
                 }
 
-
                 LazyColumn {
                     items(posts.value.size) {
-                        PostView(post = posts.value[it])
+                        PostView(post = posts.value[it], onCommentClick = {
+                            navController.navigate("post_details/${posts.value[it].postId}")
+                        })
                     }
                 }
 

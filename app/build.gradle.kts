@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.gms.google-services")
+    id("kotlin-android")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -54,7 +56,6 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-//    implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -88,5 +89,7 @@ dependencies {
     // Glide for loading images
     implementation("com.github.skydoves:landscapist-glide:1.3.7")
 
+    // Add serialization dependency
+    implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
 }
