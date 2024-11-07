@@ -13,21 +13,21 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.socialmediaapp.models.Post
 import com.example.socialmediaapp.models.User
+import com.example.socialmediaapp.utils.FeedState
+import com.example.socialmediaapp.utils.LoadState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-enum class LoadState {
-    LOADING,
-    SUCCESS,
-    ERROR
-}
 
 class FeedViewModel : ViewModel() {
 
@@ -38,9 +38,28 @@ class FeedViewModel : ViewModel() {
     val postsLiveData: MutableState<List<Post>> = mutableStateOf(emptyList())
     val isLoading: MutableState<Boolean> = mutableStateOf(false)
 
-    private val _loadState = MutableLiveData(LoadState.LOADING)
-    val loadState: LiveData<LoadState> = _loadState
-    val post: MutableState<Post?> = mutableStateOf(null)
+    private val _loadState = MutableLiveData<LoadState>(LoadState.LOADING) // Start with loading state
+    val loadState: LiveData<LoadState> get() = _loadState
+
+    val emptyPost = Post(
+        "",
+        "",
+        "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/profile_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=c950a3aa-8341-4adb-97a5-7ee229882ed0",
+        "User Name",
+        "1730389310032",
+        true,
+        "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/post_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=9fa73dba-456c-448c-bfe9-b207325372b0",
+        "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
+        10,
+        listOf(),
+        listOf(),
+        isLiked = false,
+        isFollowing = false
+    )
+    val post: MutableState<Post> = mutableStateOf(emptyPost)
+
+    val scope = MainScope() // the scope of MyUIClass, uses Dispatchers.Main
+
 
     init {
         fetchPosts()
@@ -118,27 +137,27 @@ class FeedViewModel : ViewModel() {
 
     fun fetchPost(postId: String) {
         val db = FirebaseFirestore.getInstance()
-        println("StartedFetchPost")
+        println("Started fetching post")
 
-        _loadState.value = LoadState.LOADING
+        _loadState.postValue(LoadState.LOADING)
 
         db.collection("posts").document(postId)
             .get()
             .addOnSuccessListener { document ->
                 if (document.exists()) {
-                    post.value = document.toObject(Post::class.java)
-                    println("Fetched post successfully")
-                    _loadState.value = LoadState.SUCCESS
+                    post.value = document.toObject(Post::class.java) ?: emptyPost
+                    println("Fetched post successfully: ${post.value}")
+                    _loadState.postValue(LoadState.SUCCESS)
                 } else {
-                    // Handle the case where the post does not exist
-                    post.value = null
-                    _loadState.value = LoadState.ERROR
+                    println("Post does not exist")
+                    post.value = emptyPost
+                    _loadState.postValue(LoadState.ERROR)
                 }
             }
             .addOnFailureListener { e ->
                 println("Error fetching post: ${e.message}")
-                post.value = null
-                _loadState.value = LoadState.ERROR
+                post.value = emptyPost
+                _loadState.postValue(LoadState.ERROR)
             }
     }
 
@@ -177,7 +196,6 @@ class FeedViewModel : ViewModel() {
         formatter.format(instant)
         return instant.toEpochMilli().toString() // Returns milliseconds as String
     }
-
 
 
     suspend fun likePost(postId: String): Int? {
@@ -224,30 +242,8 @@ class FeedViewModel : ViewModel() {
     }
 
 
-
-
-
-    suspend fun isUserLiked(postId: String): Boolean {
-        val db = FirebaseFirestore.getInstance()
-        val postRef = db.collection("posts").document(postId)
-
-        return try {
-            // Get the document of the post
-            val document = postRef.get().await()
-
-            // Get the list of likes
-            val likes = document.get("likes") as? List<*>
-
-            // Check if the userId exists in the likes list
-            likes?.contains(auth.currentUser!!.uid) == true
-        } catch (e: Exception) {
-            println("Error checking if user liked the post: ${e.message}")
-            false
-        }
-    }
-
     // Get all posts for timeline feed page
-    fun fetchPosts(){
+    fun fetchPosts() {
 
         val db = FirebaseFirestore.getInstance()
         _feedState.value = FeedState.Loading
@@ -259,8 +255,13 @@ class FeedViewModel : ViewModel() {
 
                 for (document in documents) {
                     if (document != null && document.exists()) {
+
                         val post = document.toObject<Post>()
+                        println("FollowerSize: ${post.followers.size}")
+                        println("LikesSize: ${post.likes.size}")
                         post.postId = document.id
+                        post.isLiked = post.likes.contains(auth.currentUser?.uid)
+                        post.isFollowing = post.followers.contains(auth.currentUser?.uid)
                         tempPosts.add(post)
                     }
                 }
@@ -286,11 +287,27 @@ class FeedViewModel : ViewModel() {
 
     }
 
+    suspend fun updateFollowState(postId: String, followState: Boolean) {
+        val db = FirebaseFirestore.getInstance()
+        val postRef = db.collection("posts").document(postId)
+
+        return try {
+
+            if (followState) {
+                // Update the "likes" array by removing the user's uid
+                postRef.update("followers", FieldValue.arrayUnion(auth.currentUser!!.uid)).await()
+            } else {
+                // Update the "likes" array by removing the user's uid
+                postRef.update("followers", FieldValue.arrayRemove(auth.currentUser!!.uid)).await()
+            }
+
+            println("Updated follower count")
+        } catch (e: Exception) {
+            println("Error updating or fetching follower count: ${e.message}")
+        }
+    }
+
 }
 
-sealed class FeedState {
-    data object Loading : FeedState()
-    data object Published : FeedState()
-    data object DoneProcessing : FeedState()
-    data class Error(val message: String) : FeedState()
-}
+
+

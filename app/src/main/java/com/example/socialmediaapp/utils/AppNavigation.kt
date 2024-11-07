@@ -66,7 +66,7 @@ fun AppNavigation(
             // Pass the postId to the PostDetailsPage Composable
             PostDetailsPage(
                 navController = navController,
-                postId = postId,
+                postId = postId!!,
                 feedViewModel = FeedViewModel()
             )
         }

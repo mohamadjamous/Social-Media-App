@@ -22,6 +22,7 @@ import com.example.socialmediaapp.R
 
 @Composable
 fun LikeButton(like: Boolean, onLike: () -> Unit, onDislike: () -> Unit) {
+
     var isLiked by remember { mutableStateOf(like) }
     val context = LocalContext.current
 
@@ -43,7 +44,7 @@ fun LikeButton(like: Boolean, onLike: () -> Unit, onDislike: () -> Unit) {
 
     // Adjust the scale for the animation
     val scale by animateFloatAsState(
-        targetValue = if (isLiked) 1.2f else 1f,
+        targetValue = if (isLiked) 1.1f else 1f,
         animationSpec = tween(durationMillis = 10) // Slightly faster effect
     )
 

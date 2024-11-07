@@ -17,7 +17,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,23 +51,13 @@ fun PostView(
     onCommentClick: () -> Unit
 ) {
 
-    var followState by remember { mutableStateOf(post.followState) }
+    var isFollowing by remember { mutableStateOf(post.isFollowing) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     // Set likesCount only once when the composable loads
     var likesCount by remember { mutableIntStateOf(post.likes.size) }
 
-    // Boolean variable to track if the user has liked the post
-    var isLiked by remember { mutableStateOf(false) }
-
-
-    // Check if the current user has liked the post when the composable is first composed
-    LaunchedEffect(post.postId) {
-        // Assuming auth.currentUser?.uid gives the current user ID
-        isLiked = feedViewModel.isUserLiked(post.postId)
-        println("IsLiked: $isLiked")
-    }
 
 
     Column(
@@ -81,7 +70,7 @@ fun PostView(
 
         Row(
             modifier = Modifier
-                .padding(10.dp)
+                .padding(5.dp)
                 .fillMaxWidth()
         ) {
 
@@ -110,13 +99,16 @@ fun PostView(
                 )
             }
 
-            Spacer(modifier = Modifier.width(70.dp))
+            Spacer(modifier = Modifier.width(100.dp))
 
 
-            if (followState) {
+            if (isFollowing) {
                 TextButton(
                     onClick = {
-                        followState = false
+                        coroutineScope.launch {
+                            feedViewModel.updateFollowState(post.postId, false)
+                            isFollowing = false
+                        }
                     },
                     modifier = Modifier.padding(top = 10.dp)
                 ) {
@@ -125,7 +117,12 @@ fun PostView(
             } else {
                 OutlinedButton(
                     onClick = {
-                        followState = true
+                        coroutineScope.launch {
+                            coroutineScope.launch {
+                                feedViewModel.updateFollowState(post.postId, true)
+                                isFollowing = true
+                            }
+                        }
                     },
                     modifier = Modifier.padding(top = 10.dp)
                 ) {
@@ -142,8 +139,9 @@ fun PostView(
             contentDescription = "null",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .height(300.dp)
+                .height(350.dp)
                 .fillMaxWidth()
+                .padding(top = 5.dp)
 
         )
 
@@ -164,9 +162,9 @@ fun PostView(
                 contentDescription = ""
             )
 
-            Spacer(modifier = Modifier.width(190.dp))
+            Spacer(modifier = Modifier.width(235.dp))
 
-            LikeButton(like = !isLiked,
+            LikeButton(like = post.isLiked,
                 onLike = {
                     coroutineScope.launch {
                         likesCount = feedViewModel.likePost(post.postId)!!
@@ -222,7 +220,11 @@ fun PostPreview() {
                 true,
                 "https://firebasestorage.googleapis.com/v0/b/social-media-app-9c892.appspot.com/o/post_images%2FtzR3HS87KKc8aq9zFnpd8f3f5ZM2.jpg?alt=media&token=9fa73dba-456c-448c-bfe9-b207325372b0",
                 "Caption Caption Caption Caption Caption Caption Caption Caption Caption Caption",
-                10, listOf()
+                10,
+                listOf(),
+                listOf(),
+                isLiked = false,
+                isFollowing = false
             ), feedViewModel = FeedViewModel(),
             onCommentClick = {}
         )

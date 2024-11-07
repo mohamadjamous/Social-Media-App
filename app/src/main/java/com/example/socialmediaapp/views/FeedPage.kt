@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +51,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
 import com.example.socialmediaapp.R
-import com.example.socialmediaapp.viewmodels.FeedState
+import com.example.socialmediaapp.utils.FeedState
 import com.example.socialmediaapp.viewmodels.FeedViewModel
 import com.example.socialmediaapp.views.components.CircularProgress
 import com.example.socialmediaapp.views.components.GreenButton
@@ -137,15 +138,16 @@ fun FeedPage(
                             Image(
                                 painterResource(id = R.drawable.camera),
                                 contentDescription = "image",
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(35.dp)
 
                             )
                         }
 
                         Text(
                             text = "Timeline",
-                            fontSize = 20.sp,
-                            modifier = Modifier.padding(top = 20.dp)
+                            fontSize = 30.sp,
+                            modifier = Modifier
+                                .padding(top = 10.dp)
                         )
 
                         Surface(onClick = {
@@ -159,14 +161,15 @@ fun FeedPage(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(250.dp))
+                    Spacer(modifier = Modifier.width(200.dp))
 
 
                     Image(painterResource(id = R.drawable.search),
                         contentDescription = "image",
                         modifier = Modifier
-                            .size(30.dp)
+                            .size(40.dp)
                             .clickable { navController.navigate("search") }
+                            .padding(top = 10.dp)
                     )
 
                 }
